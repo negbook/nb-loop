@@ -29,8 +29,8 @@ Loop2(function(duration)
 end )
 
 
-local Loop3 = PepareLoop(0,function()
-    print('some of loop3 is released')
+local Loop3 = PepareLoop(0,function(obj)
+    print('some of loop3 is released',obj("getfn"))
 end)
 Loop3(function(duration)
     print("Loop test2 "..duration("get"))
