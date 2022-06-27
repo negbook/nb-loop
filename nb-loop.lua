@@ -5,6 +5,7 @@ do
 local Tasksync = _M_
 local Loops = {}
 local e = {}
+local totalthreads = 0
 setmetatable(Loops,{__newindex=function(t,k,v) rawset(t,tostring(k),v) end,__index=function(t,k) return rawget(t,tostring(k)) end})
 setmetatable(e,{__call=function()end})
 
@@ -83,6 +84,7 @@ end
 Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup = function(duration,init)
     local init = init   
     CreateThread(function()
+        totalthreads = totalthreads + 1
         local loop = Loops[duration]
         
         if init then init() init = nil end
@@ -96,6 +98,7 @@ Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup = function(duration,i
             
         until n == 0 
         --print("Deleted thread",duration)
+        totalthreads = totalthreads - 1
         return 
     end)
 end     
@@ -230,6 +233,8 @@ Tasksync.PepareLoop = function(duration,releasecb)
 
     return setmetatable(self,{__call = function(self,...)
         return self:add(...)
+    end,__tostring = function()
+        return "This duration:"..self.get().."Total loop threads:"..totalthreads
     end})
 end
 end 
