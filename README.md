@@ -110,10 +110,12 @@ Citizen.CreateThread(function()
 end)
 ```
 
-with nb-loop:
+with nb-loop we can:
 ```
 local Loop = PepareLoop(1000)
 Loop(function(durationRef)
+        local foundingCoords = GetEntityCoords(PlayerPedId())
+        if not IsAnyObjectNearPoint(foundingCoords.x,foundingCoords.y,foundingCoords.z,2.5,false) then return nil end  
 	local pumpObject, pumpDistance = FindNearestFuelPump()
 	if pumpDistance < 2.5 then
 		isNearPump = pumpObject
@@ -134,4 +136,60 @@ Loop(function(durationRef)
         durationRef("set",duration)
 	end
 end 
+```
+
+we can also : 
+```
+
+local Loop1
+
+local Loop2 = PepareLoop(5000)
+    
+Loop2(function()
+    local playerPed = PlayerPedId()
+    if IsPedInAnyVehicle(playerPed) then return nil end
+    
+    local fuelModels = {
+        `somesomesome`
+    }
+    local foundingCoords = PlayerFrontVecotr(0.0,0.5,0.0)
+    if not IsAnyObjectNearPoint(foundingCoords.x,foundingCoords.y,foundingCoords.z,10.0,false) then return nil end  
+    local found = false 
+    for i,hash in pairs(atmModels) do 
+        if DoesObjectOfTypeExistAtCoords(foundingCoords.x, foundingCoords.y, foundingCoords.z, 10.0, hash, false) then 
+            found = hash 
+            break 
+        end
+    end 
+    if found then 
+        if not Loop1 then 
+            Loop1 = PepareLoop(2500)
+            Loop1(function(durationRef)
+                local pumpObject, pumpDistance = FindNearestFuelPump()
+                if pumpDistance < 2.5 then
+                    isNearPump = pumpObject
+
+                    if Config.UseESX then
+                        local playerData = ESX.GetPlayerData()
+                        for i=1, #playerData.accounts, 1 do
+                            if playerData.accounts[i].name == 'money' then
+                                currentCash = playerData.accounts[i].money
+                                break
+                            end
+                        end
+                    end
+                else
+                    isNearPump = false
+                    local duration = math.ceil(pumpDistance * 20)
+                    duration = duration >= 2500 and 2500 or duration 
+                    durationRef("set",duration)
+                end
+            end,function()
+                Loop1 = nil
+            end)
+        end 
+    elseif Loop1 then  
+        Loop1:delete()
+    end 
+end) 
 ```
