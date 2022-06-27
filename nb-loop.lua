@@ -203,18 +203,20 @@ Tasksync.PepareLoop = function(duration,releasecb)
         local ontaskdelete = nil
         if not _fnondelete then 
             if releasecb then 
-                ontaskdelete = function(obj)
+                ontaskdelete = function()
                     releasecb(obj)
                 end 
             end
         else 
             if releasecb then 
-                ontaskdelete = function(obj)
+                ontaskdelete = function()
                     releasecb(obj)
                     _fnondelete(obj)
                 end 
             else 
-                ontaskdelete = _fnondelete
+                ontaskdelete = function()
+                    _fnondelete(obj)
+                end 
             end
         end
         obj = Tasksync.addloop(duration,_fn,ontaskdelete)
