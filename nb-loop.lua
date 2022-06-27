@@ -37,6 +37,10 @@ local newloopobject = function(duration,onaction,ondelete)
                 releaseobject = value 
             elseif action == "getreleasetimerobject" then 
                 return releaseobject
+            elseif action == "set" then 
+                duration = value 
+            elseif action == "get" then 
+                return duration 
             end 
         end 
     elseif onaction and not ondelete then 
@@ -55,6 +59,10 @@ local newloopobject = function(duration,onaction,ondelete)
                 releaseobject = value 
             elseif action == "getreleasetimerobject" then 
                 return releaseobject
+            elseif action == "set" then 
+                duration = value 
+            elseif action == "get" then 
+                return duration 
             end 
         end 
     end 
