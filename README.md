@@ -24,16 +24,26 @@ end)
 
 Loop2(function(duration)
     print("Loop2 test "..duration("get"))
-    duration("set",500)
+    duration("set",5000)
 
 end )
 
-Loop2:delete()
 
-local Loop = PepareLoop(1000)
-Loop(function(duration)
+local Loop3 = PepareLoop(0,function()
+    print('some of loop3 is released')
+end)
+Loop3(function(duration)
+    print("Loop test2 "..duration("get"))
     duration("set",math.random(0,500))
+end,function()
+    print('Loop3 is released released released')
+end)
+Loop3:delete(3000)
+Loop3(function(duration)
+    print("Loop test22 "..duration("get"))
+    duration("kill")
+end,function()
+    print('Loop32 is released released released')
 end)
 
-Loop:delete(3000)
 ```
