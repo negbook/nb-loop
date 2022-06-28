@@ -165,14 +165,14 @@ Tasksync.transferobject = function(obj,duration)
     end 
 end 
  
-local newreleasetimer = function(obj,timer,cb)
+local newreleasetimer = function(obj,timer,cb,cb2)
     local releasetimer = timer   + GetGameTimer()
     local obj = obj 
     local tempcheck = Tasksync.PepareLoop(250)  
     tempcheck(function(duration)
         if GetGameTimer() > releasetimer then 
             tempcheck:delete()
-            Tasksync.deleteloop(obj)
+            Tasksync.deleteloop(obj,cb2)
         end 
     end,cb)
     return function(action,value)
@@ -185,11 +185,11 @@ local newreleasetimer = function(obj,timer,cb)
 end  
 
 
-Tasksync.setreleasetimer = function(obj,releasetimer)
+Tasksync.setreleasetimer = function(obj,releasetimer,cb)
     if not obj("getreleasetimerobject") then 
         obj("setreleasetimerobject",newreleasetimer(obj,releasetimer,function()
             obj("setreleasetimerobject",nil)
-        end))
+        end),cb)
     else 
         obj("getreleasetimerobject")("set",releasetimer)
     end 
@@ -222,12 +222,14 @@ Tasksync.PepareLoop = function(duration,releasecb)
         obj = Tasksync.addloop(duration,_fn,ontaskdelete)
         return obj
     end
-    self.delete = function(self,duration)
+    self.delete = function(self,duration,cb)
+        local cb = type(duration) ~= "number" and duration or cb 
+        local duration = type(duration) == "number" and duration or nil
         if obj then 
             if duration then 
-                Tasksync.setreleasetimer(obj,duration) 
+                Tasksync.setreleasetimer(obj,duration,cb) 
             else 
-                Tasksync.deleteloop(obj) 
+                Tasksync.deleteloop(obj,cb) 
             end 
         end
     end
