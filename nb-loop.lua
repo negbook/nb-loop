@@ -249,7 +249,9 @@ Tasksync.PepareLoop = function(duration,releasecb)
     return setmetatable(self,{__call = function(self,...)
         return self:add(...)
     end,__tostring = function()
-        return "This duration:"..self.get().."Total loop threads:"..totalthreads
+        local group = self.get()
+        local tasksN = #Loops[group]
+        return "This duration:"..group.." Total tasks:"..tasksN.." Total loop threads:"..totalthreads
     end})
 end
 end 
