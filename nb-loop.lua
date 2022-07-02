@@ -95,20 +95,15 @@ Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup = function(duration,i
     CreateThread(function()
         totalthreads = totalthreads + 1
         local loop = Loops[duration]
-        
+        local Wait = Wait
         if init then init() init = nil end
         repeat 
             local Objects = (loop or e)
             local n = #Objects
             for i=1,n do 
-                if (Objects[i] or e)() == err then 
-                    totalthreads = totalthreads - 1
-                    return 
-                end 
+                (Objects[i] or e)()
             end 
-            Wait(duration)
-            
-        until n == 0 
+        until n == 0 or Wait(duration) 
         --print("Deleted thread",duration)
         totalthreads = totalthreads - 1
         return 
@@ -124,10 +119,7 @@ Tasksync.__createNewThreadForNewDurationLoopFunctionsGroupDebug = function(durat
             local Objects = (loop or e)
             local n = #Objects
             for i=1,n do 
-                if (Objects[i] or e)() == err then 
-                    totalthreads = totalthreads - 1
-                    return 
-                end 
+                (Objects[i] or e)()
             end 
         until n == 0 
         --print("Deleted thread",duration)
