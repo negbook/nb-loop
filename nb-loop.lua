@@ -5,9 +5,10 @@ do
 local Tasksync = _M_
 local Loops = {}
 local e = {}
+local err = "Error"
 local totalthreads = 0
 setmetatable(Loops,{__newindex=function(t,k,v) rawset(t,tostring(k),v) end,__index=function(t,k) return rawget(t,tostring(k)) end})
-setmetatable(e,{__call=function()end})
+setmetatable(e,{__call=function() return err end})
 
 local GetDurationAndIndex = function(obj,cb) for duration,names in pairs(Loops) do for i=1,#names do local v = names[i] if v == obj then local duration_tonumber = tonumber(duration) if cb then cb(duration_tonumber,i) end return duration_tonumber,i end end end end
 local remove_manual = function(duration,index) local indexs = Loops[duration] table.remove(indexs,index) if #indexs == 0 then Loops[duration] = nil end end 
@@ -100,7 +101,10 @@ Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup = function(duration,i
             local Objects = (loop or e)
             local n = #Objects
             for i=1,n do 
-                (Objects[i] or e)()
+                if (Objects[i] or e)() == err then 
+                    totalthreads = totalthreads - 1
+                    return 
+                end 
             end 
             Wait(duration)
             
@@ -120,7 +124,10 @@ Tasksync.__createNewThreadForNewDurationLoopFunctionsGroupDebug = function(durat
             local Objects = (loop or e)
             local n = #Objects
             for i=1,n do 
-                (Objects[i] or e)()
+                if (Objects[i] or e)() == err then 
+                    totalthreads = totalthreads - 1
+                    return 
+                end 
             end 
         until n == 0 
         --print("Deleted thread",duration)
