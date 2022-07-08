@@ -22,14 +22,14 @@ but with more managements.
 
 ## functions
 ```
-local handle = PepareLoop(duration)
+local handle = LoopParty(duration)
 handle:delete()
 handle:set(duration)
 handle:get()
 handle:add(fn,callbackondelete)
 handle(...)   = handle:add
 
-local handle = PepareLoop(1000)
+local handle = LoopParty(1000)
 local attempt = 0
 handle(function(duration)
     print(duration("get")) 
@@ -44,8 +44,8 @@ end)
 
 ## shit examples
 ```
-local Loop = PepareLoop(1000) --create a handle Loop
-local Loop2 = PepareLoop(1000) --create a handle Loop2
+local Loop = LoopParty(1000) --create a handle Loop
+local Loop2 = LoopParty(1000) --create a handle Loop2
 
 Loop(function(duration)
     print("Loop test "..duration("get"))
@@ -59,9 +59,9 @@ Loop2(function(duration)
 end )
 
 
-local Loop3 = PepareLoop(0,function(obj)
-    print('some of loop3 is released',obj("getfn"))
-end) -- we can set callback when some task just killed
+local Loop3 = LoopParty(0,function()
+    return IsPlayerVisible
+end) -- we can set checkcb to run tasks 
 
 Loop3(function(duration)
     print("Loop test2 "..duration("get"))
@@ -76,7 +76,7 @@ Loop3(function(duration)
     duration("kill")
 end,function()
     print('Loop32 is released released released')
-end) -- insert a task into the handle : Loop3(PepareLoop)
+end) -- insert a task into the handle : Loop3 
 
 ```
 
@@ -112,7 +112,7 @@ end)
 
 with nb-loop we can:
 ```
-local Loop = PepareLoop(1000)
+local Loop = LoopParty(1000)
 Loop(function(durationRef)
         local foundingCoords = GetEntityCoords(PlayerPedId())
         if not IsAnyObjectNearPoint(foundingCoords.x,foundingCoords.y,foundingCoords.z,2.5,false) then return nil end  
@@ -143,7 +143,7 @@ we can also :
 
 local Loop1
 
-local Loop2 = PepareLoop(5000)
+local Loop2 = LoopParty(5000)
     
 Loop2(function()
     local playerPed = PlayerPedId()
@@ -163,7 +163,7 @@ Loop2(function()
     end 
     if found then 
         if not Loop1 then 
-            Loop1 = PepareLoop(2500)
+            Loop1 = LoopParty(2500)
             Loop1(function(durationRef)
                 local pumpObject, pumpDistance = FindNearestFuelPump()
                 if pumpDistance < 2.5 then

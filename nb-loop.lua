@@ -1,258 +1,195 @@
---Credit: negbook
---https://github.com/negbook/simple_snippets/blob/main/grouped_libs/PepareLoop.md
 local _M_ = {}
 do 
-local Tasksync = _M_
-local Loops = {}
-local e = {}
-local err = "Error"
-local totalthreads = 0
-setmetatable(Loops,{__newindex=function(t,k,v) rawset(t,tostring(k),v) end,__index=function(t,k) return rawget(t,tostring(k)) end})
-setmetatable(e,{__call=function() return err end})
 
-local GetDurationAndIndex = function(obj,cb) for duration,names in pairs(Loops) do for i=1,#names do local v = names[i] if v == obj then local duration_tonumber = tonumber(duration) if cb then cb(duration_tonumber,i) end return duration_tonumber,i end end end end
-local remove_manual = function(duration,index) local indexs = Loops[duration] table.remove(indexs,index) if #indexs == 0 then Loops[duration] = nil end end 
-local remove = function(obj,cb) GetDurationAndIndex(obj,function(duration,index) remove_manual(duration,index) if cb then cb() end end) end 
-local init = function(duration,obj,cb) if Loops[duration] == nil then Loops[duration] = {}; if cb then cb() end end table.insert(Loops[duration],obj) end 
-local newloopobject = function(duration,onaction,ondelete)
-    local onaction = onaction 
-    local ondelete = ondelete 
-    local duration = duration 
-    local releaseobject = nil 
-    local ref = nil 
-    if onaction and ondelete then 
-        return function (action,value)
-            if not action or action == "onaction" then 
-                return onaction(ref)
-            elseif action == "ondelete" then 
-                return ondelete()
-            elseif action == "setduration" then 
-                duration = value 
-            elseif action == "getduration" then 
-                return duration 
-            elseif action == "getfn" then 
-                return onaction 
-            elseif action == "setref" then 
-                ref = value
-            elseif action == "setreleasetimerobject" then 
-                releaseobject = value 
-            elseif action == "getreleasetimerobject" then 
-                return releaseobject
-            elseif action == "set" then 
-                duration = value 
-            elseif action == "get" then 
-                return duration 
-            end 
-        end 
-    elseif onaction and not ondelete then 
-        return function (action,value)
-            if not action or action == "onaction" then 
-                return onaction(ref)
-            elseif action == "setduration" then 
-                duration = value 
-            elseif action == "getduration" then 
-                return duration 
-            elseif action == "getfn" then 
-                return onaction 
-            elseif action == "setref" then 
-                ref = value
-            elseif action == "setreleasetimerobject" then 
-                releaseobject = value 
-            elseif action == "getreleasetimerobject" then 
-                return releaseobject
-            elseif action == "set" then 
-                duration = value 
-            elseif action == "get" then 
-                return duration 
-            end 
-        end 
-    end 
-end 
+    local totalThread = 0
+    local debugMode = false
+    local e = {} setmetatable(e,{__call = function(t,...) end})
+    local newLoopThread = function(t,k)  
+        CreateThread(function()
+            totalThread = totalThread + 1
+            local o = t[k]
+            repeat 
+                local tasks = (o or e)
+                local n = #tasks
+                if n==0 then 
+                    goto end_loop 
+                end 
+                for i=1,n do 
+                    (tasks[i] or e)()
+                end 
+            until n == 0 or Wait(k) 
+            ::end_loop::
+            totalThread = totalThread - 1
+            t[k] = nil
 
-
-local updateloop = function(obj,new_duration,cb)
-    remove(obj,function()
-        init(new_duration,obj,function()
-            Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup(new_duration,cb)
+            return 
         end)
-    end)
-end 
+    end   
 
-local ref = function (default,obj)
-    return function(action,v) 
-        if action == 'get' then 
-            return obj("getduration") 
-        elseif action == 'set' then 
-            return Tasksync.transferobject(obj,v)  
-        elseif action == 'kill' or action == 'break' then 
-            Tasksync.deleteloop(obj)
-        end 
-    end 
-end 
-
-Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup = function(duration,init)
-    local init = init   
-    CreateThread(function()
-        totalthreads = totalthreads + 1
-        local loop = Loops[duration]
-        local Wait = Wait
-        if init then init() init = nil end
-        repeat 
-            local Objects = (loop or e)
-            local n = #Objects
-            for i=1,n do 
-                (Objects[i] or e)()
-            end 
-        until n == 0 or Wait(duration) 
-        --print("Deleted thread",duration)
-        totalthreads = totalthreads - 1
-        return 
-    end)
-end     
-
-Tasksync.__createNewThreadForNewDurationLoopFunctionsGroupDebug = function(duration,init)
-    local init = init   
-    CreateThread(function()
-        local loop = Loops[duration]
-        if init then init() init = nil end
-        repeat 
-            local Objects = (loop or e)
-            local n = #Objects
-            for i=1,n do 
-                (Objects[i] or e)()
-            end 
-        until n == 0 
-        --print("Deleted thread",duration)
-        return 
-    end)
-end     
-
-Tasksync.addloop = function(duration,fn,fnondelete,isreplace)
-    local obj = newloopobject(duration,fn,fnondelete)
-    obj("setref",ref(duration,obj))
-    local indexs = Loops[duration]
-    if isreplace and Loops[duration] then 
-        for i=1,#indexs do 
-            if indexs[i]("getfn") == fn then 
-                remove(indexs[i])
-            end 
-        end 
-    end 
-    init(duration,obj,function()
-        if duration < 0 then Tasksync.__createNewThreadForNewDurationLoopFunctionsGroupDebug(duration) else 
-            Tasksync.__createNewThreadForNewDurationLoopFunctionsGroup(duration)
-        end 
-    end)
-    return obj
-end 
-Tasksync.insertloop = Tasksync.addloop
-
-Tasksync.deleteloop = function(obj,cb)
-    remove(obj,function()
-        obj("ondelete")
-        if cb then cb() end 
-    end)
-end 
-Tasksync.removeloop = Tasksync.deleteloop
-
-Tasksync.transferobject = function(obj,duration)
-    local old_duration = obj("getduration")
-    if duration ~= old_duration then 
-        updateloop(obj,duration,function()
-            obj("setduration",duration)
-            Wait(old_duration)
-        end)
-    end 
-end 
- 
-local newreleasetimer = function(obj,timer,cb)
-    local releasetimer = timer   + GetGameTimer()
-    local obj = obj 
-    local tempcheck = Tasksync.PepareLoop(250)  
-    tempcheck(function(duration)
-        if GetGameTimer() > releasetimer then 
-            tempcheck:delete()
-            Tasksync.deleteloop(obj,cb)
-        end 
-    end)
-    return function(action,value)
-        if action == "get" then 
-            return releasetimer
-        elseif action == "set" then 
-            releasetimer = timer + GetGameTimer()
-        end 
-    end 
-end  
-
-
-Tasksync.setreleasetimer = function(obj,releasetimer,cb)
-    if not obj("getreleasetimerobject") then 
-        obj("setreleasetimerobject",newreleasetimer(obj,releasetimer,function()
-            obj("setreleasetimerobject",nil)
-            if cb then cb() end 
-        end))
-    else 
-        obj("getreleasetimerobject")("set",releasetimer)
-    end 
-
-end 
-
-Tasksync.PepareLoop = function(duration,releasecb)
-    local self = {}
-    local obj = nil 
-    self.add = function(self,_fn,_fnondelete)
-        local ontaskdelete = nil
-        if not _fnondelete then 
-            if releasecb then 
-                ontaskdelete = function()
-                    releasecb(obj)
-                end 
-            end
-        else 
-            if releasecb then 
-                ontaskdelete = function()
-                    releasecb(obj)
-                    _fnondelete(obj)
-                end 
-            else 
-                ontaskdelete = function()
-                    _fnondelete(obj)
-                end 
-            end
-        end
-        obj = Tasksync.addloop(duration,_fn,ontaskdelete)
-        return obj
-    end
-    self.delete = function(self,duration,cb)
-        local cb = type(duration) ~= "number" and duration or cb 
-        local duration = type(duration) == "number" and duration or nil
-    
-        if obj then 
-            if duration then 
-                Tasksync.setreleasetimer(obj,duration,cb) 
-            else 
-                Tasksync.deleteloop(obj,cb) 
-            end 
-        end
-    end
-    self.release = self.delete
-    self.remove = self.delete
-    self.kill = self.delete
-    self.set = function(self,newduration)
-        if obj then Tasksync.transferobject(obj,newduration) end 
-    end
-    self.get = function(self)
-        if obj then return obj("getduration") end 
-    end
-
-    return setmetatable(self,{__call = function(self,...)
-        return self:add(...)
-    end,__tostring = function()
-        local group = self.get()
-        local tasksN = #Loops[group]
-        return "This duration:"..group.." Total tasks:"..tasksN.." Total loop threads:"..totalthreads
+    local Loops = setmetatable({[e]=e}, {__newindex = function(t, k, v)
+        rawset(t, k, v)
+        newLoopThread(t, k)
     end})
-end
+
+    local newLoopObject = function(t,selff,f)
+        local fns = t.fns
+        local fnsbreak = t.fnsbreak
+        local f = f 
+        local selff = selff
+        local ref = function(act,val)
+            if act == "break" or act == "kill" then 
+                local n = fns and #fns or 0
+                if n > 0 then 
+                    for i=1,n do 
+                        if fns[i] == f then 
+                            table.remove(fns,i)
+                            if fnsbreak and fnsbreak[i] then fnsbreak[i]() end
+                            table.remove(fnsbreak,i)
+                            if #fns == 0 then 
+                                table.remove(Loops[t.duration],i)
+                            end
+                            break
+                        end
+                    end
+                else 
+                    return t:delete(fbreak)
+                end
+            elseif act == "set" or act == "transfer" then 
+                return t:transfer(val) 
+            elseif act == "get" then 
+                return t.duration
+            end 
+        end
+        local aliveDelay = nil 
+        return function(action,...)
+            if not action then
+                if aliveDelay and GetGameTimer() < aliveDelay then 
+                    return e()
+                else 
+                    aliveDelay = nil 
+                    return selff(ref)
+                end
+            elseif action == "setalivedelay" then 
+                local delay = ...
+                aliveDelay = GetGameTimer() + delay
+            else 
+                ref(action,...)
+            end
+        end 
+    end 
+
+    local LoopParty = function(duration,init)
+        if not Loops[duration] then Loops[duration] = {} end 
+        local self = {}
+        self.duration = duration
+        self.fns = {}
+        self.fnsbreak = {}
+        local selff
+        if init then 
+            selff = function(ref)
+                local fns = self.fns
+                local n = #fns
+                if init() then 
+                    for i=1,n do 
+                        fns[i](ref)
+                    end 
+                end 
+            end 
+        else 
+            selff = function(ref)
+                local fns = self.fns
+                local n = #fns
+                for i=1,n do 
+                    fns[i](ref)
+                end 
+            end 
+        end 
+        setmetatable(self, {__index = Loops[duration],__call = function(t,f,...)
+            if type(f) ~= "string" then 
+                local fbreak = ...
+                table.insert(t.fns, f)
+                if fbreak then table.insert(self.fnsbreak, fbreak) end
+                local obj = newLoopObject(self,selff,f)
+                table.insert(Loops[duration], obj)
+                self.obj = obj
+                return self
+            elseif self.obj then  
+                return self.obj(f,...)
+            end 
+        end,__tostring = function(t)
+            return "Loop("..t.duration.."), Total Thread: "..totalThread
+        end})
+        self.found = function(self,f)
+            for i,v in ipairs(Loops[self.duration]) do
+                if v == self.obj then
+                    return i
+                end 
+            end 
+            return false
+        end
+        self.delay = nil 
+        local checktimeout = function(cb)
+                
+                if (self.delay and self.delay <= GetGameTimer()) or not self.delay then 
+                    if Loops[duration] then 
+                        local i = self.found(self)
+                        if i then
+                            local fns = self.fns
+                            local fnsbreak = self.fnsbreak
+                            local n = fns and #fns or 0
+                            if n > 0 then 
+                                table.remove(fns,n)
+                                if fnsbreak and fnsbreak[n] then fnsbreak[n]() end
+                                table.remove(fnsbreak,n)
+                                if #fns == 0 then 
+                                    table.remove(Loops[duration],i)
+                                end
+                                if cb then cb() end
+                            elseif debugMode then  
+                                error("It should be deleted")
+                            end 
+                            
+                        elseif debugMode then  
+                            error('Task deleteing not found',2)
+                        end
+                    elseif debugMode then  
+                        error('Task deleteing not found',2)
+                    end 
+                end 
+            end 
+        self.delete = function(s,delay,cb)
+            local delay = delay
+            local cb = cb 
+            if type(delay) ~= "number" then 
+                cb = delay
+                delay = nil 
+            end 
+            
+            if delay and delay>0 then 
+                self.delay = delay + GetGameTimer()   
+                SetTimeout(delay,function()
+                    checktimeout(cb)
+                end)
+            else
+                self.delay = nil 
+                checktimeout(cb)
+            end 
+        end
+        self.transfer = function(s,newduration)
+            if s.duration == newduration then return end
+            local i = s.found(s) 
+            if i then
+                table.remove(Loops[s.duration],i)
+                s.obj("setalivedelay",newduration)
+                if not Loops[newduration] then Loops[newduration] = {} end 
+                table.insert(Loops[newduration],s.obj)
+                s.duration = newduration
+            end
+        end
+        self.set = self.transfer 
+        return self
+    end 
+    _M_.LoopParty = LoopParty
 end 
 
-PepareLoop = _M_.PepareLoop
+LoopParty = _M_.LoopParty
