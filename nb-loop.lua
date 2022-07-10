@@ -43,8 +43,11 @@ do
                     for i=1,n do 
                         if fns[i] == f then 
                             table.remove(fns,i)
-                            if fnsbreak and fnsbreak[i] then fnsbreak[i]() end
-                            table.remove(fnsbreak,i)
+                            if fnsbreak and fnsbreak[i] then 
+                                fnsbreak[i]() 
+                                table.remove(fnsbreak,i)
+                            end
+                            
                             if #fns == 0 then 
                                 table.remove(Loops[t.duration],i)
                             end
@@ -58,6 +61,8 @@ do
                 return t:transfer(val) 
             elseif act == "get" then 
                 return t.duration
+            elseif act == "self" then 
+                return t
             end 
         end
         local aliveDelay = nil 
@@ -91,7 +96,7 @@ do
                 local n = #fns
                 if init() then 
                     for i=1,n do 
-                        fns[i](ref)
+                        (fns[i] or e)(ref)
                     end 
                 end 
             end 
@@ -100,7 +105,7 @@ do
                 local fns = self.fns
                 local n = #fns
                 for i=1,n do 
-                    fns[i](ref)
+                    (fns[i] or e)(ref)
                 end 
             end 
         end 
@@ -117,7 +122,7 @@ do
                 return self.obj(f,...)
             end 
         end,__tostring = function(t)
-            return "Loop("..t.duration.."), Total Thread: "..totalThread
+            return "Loop("..t.duration..","..#t.fns.."), Total Thread: "..totalThread
         end})
         self.found = function(self,f)
             for i,v in ipairs(Loops[self.duration]) do
