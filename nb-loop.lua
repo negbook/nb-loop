@@ -65,6 +65,8 @@ do
             elseif act == "internal_addfunction" then 
                 table.insert(fns, val)
                 if val2 then table.insert(fnsbreak, val2) end
+            elseif act == "get_internal_functions" then 
+                return fns
             end 
         end
         
@@ -138,7 +140,7 @@ do
                 return self.obj(f,...)
             end 
         end,__tostring = function(t)
-            return "Loop("..t.duration..","..#t.obj("fns").."), Total Thread: "..totalThread
+            return "Loop("..t.duration..","..#t.obj("get_internal_functions").."), Total Thread: "..totalThread
         end})
         self.found = function(self)
             for i,v in ipairs(Loops[self.duration]) do
