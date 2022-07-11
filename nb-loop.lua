@@ -31,22 +31,73 @@ do
         newLoopThread(t, k)
     end})
 
-    local newLoopObject = function(t,selff,f,objself)
-        local fns = t.fns
-        local fnsbreak = t.fnsbreak
-        local f = f 
-        local selff = selff
-        local ref = function(act,val)
-            if act == "break" or act == "kill" then 
-                return objself.delete()
+    local newLoopObject = function(t)
+        local fns = {}
+        local fnsbreak = {}
+        local selff
+        local init = t.init 
+        
+        local internal_delete = function(f)
+            
+            for i=1,#fns do 
+                if fns[i] and fns[i]==f then 
+                    table.remove(fns,i)
+                    if fnsbreak[i] then 
+                        fnsbreak[i]()
+                        table.remove(fnsbreak,i)
+                    end 
+                    
+                end 
+            end 
+            if #fns == 0 then 
+                table.remove(Loops[t.duration],t:found())
+            end
+        end     
+        local ref;ref = function(act,val,val2)
+            if act == "internal_deletefunction" then 
+                return internal_delete(val,val2)
             elseif act == "set" or act == "transfer" then 
                 return t:transfer(val) 
             elseif act == "get" then 
                 return t.duration
             elseif act == "self" then 
                 return t
+            elseif act == "internal_addfunction" then 
+                table.insert(fns, val)
+                if val2 then table.insert(fnsbreak, val2) end
             end 
         end
+        
+        local ref_f = function(f)
+             return function(act,val)
+                if act == "break" or act == "kill" then 
+                     return internal_delete(f)
+                 elseif act == "set" or act == "transfer" then 
+                     return t:transfer(val) 
+                 elseif act == "get" then 
+                     return t.duration
+                 end 
+             end 
+         end
+        
+        if init then 
+            selff = function()
+                local n = #fns
+                if init() then 
+                    for i=1,n do 
+                        (fns[i] or e)(ref_f(fns[i]))
+                    end 
+                end 
+            end 
+        else 
+            selff = function()
+                local n = #fns
+                for i=1,n do 
+                    (fns[i] or e)(ref_f(fns[i]))
+                end 
+            end 
+        end 
+        
         local aliveDelay = nil 
         return function(action,...)
             if not action then
@@ -54,10 +105,11 @@ do
                     return e()
                 else 
                     aliveDelay = nil 
-                    return selff(ref)
+                    return selff()
                 end
             elseif action == "setalivedelay" then 
                 local delay = ...
+                print(...)
                 aliveDelay = GetGameTimer() + delay
             else 
                 ref(action,...)
@@ -69,54 +121,20 @@ do
         if not Loops[duration] then Loops[duration] = {} end 
         local self = {}
         self.duration = duration
-        self.fns = {}
-        self.fnsbreak = {}
-        local selff
-        if init then 
-            selff = function(ref)
-                local fns = self.fns
-                local n = #fns
-                if init() then 
-                    for i=1,n do 
-                        (fns[i] or e)(ref)
-                    end 
-                end 
-            end 
-        else 
-            selff = function(ref)
-                local fns = self.fns
-                local n = #fns
-                for i=1,n do 
-                    (fns[i] or e)(ref)
-                end 
-            end 
-        end 
         setmetatable(self, {__index = Loops[duration],__call = function(t,f,...)
             if type(f) ~= "string" then 
+                if not self.obj then 
+                    local obj = newLoopObject(self)
+                    table.insert(Loops[duration], obj)
+                    self.obj = obj
+                end 
                 local fbreak = ...
-                table.insert(self.fns, f)
-                if fbreak then table.insert(self.fnsbreak, fbreak) end
-                local objself = {
+                self.obj("internal_addfunction",f,fbreak)
+                
+                return {
                     parent = self,
-                    delete = function()
-                        for i=1,#self.fns do 
-                            if self.fns[i] then 
-                                table.remove(self.fns,i)
-                                if self.fnsbreak[i] then 
-                                    self.fnsbreak[i]()
-                                    table.remove(self.fnsbreak,i)
-                                end 
-                            end 
-                        end 
-                        if #self.fns == 0 then 
-                            table.remove(Loops[self.duration],self:found())
-                        end
-                    end     
+                    delete = function() self.obj("internal_deletefunction",f,fbreak) end    
                 }
-                local obj = newLoopObject(self,selff,f,objself)
-                table.insert(Loops[duration], obj)
-                self.obj = obj
-                return objself
             elseif self.obj then  
                 return self.obj(f,...)
             end 
