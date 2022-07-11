@@ -31,32 +31,14 @@ do
         newLoopThread(t, k)
     end})
 
-    local newLoopObject = function(t,selff,f,fbreak)
+    local newLoopObject = function(t,selff,f,objself)
         local fns = t.fns
         local fnsbreak = t.fnsbreak
         local f = f 
         local selff = selff
         local ref = function(act,val)
             if act == "break" or act == "kill" then 
-                local n = fns and #fns or 0
-                if n > 0 then 
-                    for i=1,n do 
-                        if fns[i] and fns[i] == f then 
-                            table.remove(fns,i)
-                            if fnsbreak and fnsbreak[i] then 
-                                fnsbreak[i]() 
-                                table.remove(fnsbreak,i)
-                            end
-                            
-                            if #fns == 0 then 
-                                table.remove(Loops[t.duration],i)
-                            end
-                            break
-                        end
-                    end
-                else 
-                    return t:delete(fbreak)
-                end
+                return objself.delete()
             elseif act == "set" or act == "transfer" then 
                 return t:transfer(val) 
             elseif act == "get" then 
@@ -112,19 +94,36 @@ do
         setmetatable(self, {__index = Loops[duration],__call = function(t,f,...)
             if type(f) ~= "string" then 
                 local fbreak = ...
-                table.insert(t.fns, f)
+                table.insert(self.fns, f)
                 if fbreak then table.insert(self.fnsbreak, fbreak) end
-                local obj = newLoopObject(self,selff,f,fbreak)
+                local objself = {
+                    parent = self,
+                    delete = function()
+                        for i=1,#self.fns do 
+                            if self.fns[i] then 
+                                table.remove(self.fns,i)
+                                if self.fnsbreak[i] then 
+                                    self.fnsbreak[i]()
+                                    table.remove(self.fnsbreak,i)
+                                end 
+                            end 
+                        end 
+                        if #self.fns == 0 then 
+                            table.remove(Loops[self.duration],self:found())
+                        end
+                    end     
+                }
+                local obj = newLoopObject(self,selff,f,objself)
                 table.insert(Loops[duration], obj)
                 self.obj = obj
-                return self
+                return objself
             elseif self.obj then  
                 return self.obj(f,...)
             end 
         end,__tostring = function(t)
             return "Loop("..t.duration..","..#t.fns.."), Total Thread: "..totalThread
         end})
-        self.found = function(self,f)
+        self.found = function(self)
             for i,v in ipairs(Loops[self.duration]) do
                 if v == self.obj then
                     return i
@@ -135,7 +134,7 @@ do
         self.delay = nil 
         local checktimeout = function(cb)
                 
-                if (self.delay and self.delay <= GetGameTimer()) or not self.delay then 
+                if not self.delay or (self.delay <= GetGameTimer()) then 
                     if Loops[duration] then 
                         local i = self.found(self)
                         if i then
