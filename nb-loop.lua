@@ -109,7 +109,6 @@ do
                 end
             elseif action == "setalivedelay" then 
                 local delay = ...
-                print(...)
                 aliveDelay = GetGameTimer() + delay
             else 
                 ref(action,...)
@@ -139,7 +138,7 @@ do
                 return self.obj(f,...)
             end 
         end,__tostring = function(t)
-            return "Loop("..t.duration..","..#t.fns.."), Total Thread: "..totalThread
+            return "Loop("..t.duration..","..#t.obj("fns").."), Total Thread: "..totalThread
         end})
         self.found = function(self)
             for i,v in ipairs(Loops[self.duration]) do
@@ -156,21 +155,8 @@ do
                     if Loops[duration] then 
                         local i = self.found(self)
                         if i then
-                            local fns = self.fns
-                            local fnsbreak = self.fnsbreak
-                            local n = fns and #fns or 0
-                            if n > 0 then 
-                                table.remove(fns,n)
-                                if fnsbreak and fnsbreak[n] then fnsbreak[n]() end
-                                table.remove(fnsbreak,n)
-                                if #fns == 0 then 
-                                    table.remove(Loops[duration],i)
-                                end
-                                if cb then cb() end
-                            elseif debugMode then  
-                                error("It should be deleted")
-                            end 
-                            
+                            table.remove(Loops[duration],i)
+                            if cb then cb() end
                         elseif debugMode then  
                             error('Task deleteing not found',2)
                         end
@@ -189,9 +175,10 @@ do
             
             if delay and delay>0 then 
                 self.delay = delay + GetGameTimer()   
-                SetTimeout(delay,function()
+                CreateThread(function()
+                    Wait(delay) 
                     checktimeout(cb)
-                end)
+                end) 
             else
                 self.delay = nil 
                 checktimeout(cb)
