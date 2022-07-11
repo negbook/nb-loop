@@ -31,7 +31,7 @@ do
         newLoopThread(t, k)
     end})
 
-    local newLoopObject = function(t,selff,f)
+    local newLoopObject = function(t,selff,f,fbreak)
         local fns = t.fns
         local fnsbreak = t.fnsbreak
         local f = f 
@@ -41,7 +41,7 @@ do
                 local n = fns and #fns or 0
                 if n > 0 then 
                     for i=1,n do 
-                        if fns[i] == f then 
+                        if fns[i] and fns[i] == f then 
                             table.remove(fns,i)
                             if fnsbreak and fnsbreak[i] then 
                                 fnsbreak[i]() 
@@ -114,7 +114,7 @@ do
                 local fbreak = ...
                 table.insert(t.fns, f)
                 if fbreak then table.insert(self.fnsbreak, fbreak) end
-                local obj = newLoopObject(self,selff,f)
+                local obj = newLoopObject(self,selff,f,fbreak)
                 table.insert(Loops[duration], obj)
                 self.obj = obj
                 return self
